@@ -41,6 +41,7 @@ var _materials: Dictionary = {}
 var _environment: Environment
 var _sky_mat: ProceduralSkyMaterial
 var _sun: DirectionalLight3D
+var _moon: DirectionalLight3D
 var _weather_particles: CPUParticles3D
 var _weather_mesh: BoxMesh
 var _weather_mat: StandardMaterial3D
@@ -653,15 +654,20 @@ func _build_environment() -> void:
 	_sun.shadow_enabled = true
 	_sun.directional_shadow_blend_splits = true
 	_sun.directional_shadow_fade_start = 0.85
-	_sun.directional_shadow_pancake_size = 10.0
+	_sun.directional_shadow_pancake_size = 20.0
 	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-	_sun.directional_shadow_max_distance = 48.0
+	_sun.directional_shadow_max_distance = 120.0
 	_sun.shadow_bias = 0.06
 	_sun.shadow_normal_bias = 1.6
 	_sun.light_energy = 1.1
 	_sun.light_color = Color("#fff4da")
 	_sun.rotation_degrees = Vector3(-70, -35, 0)
 	add_child(_sun)
+	_moon = DirectionalLight3D.new()
+	_moon.light_color = Color("#93b4e8")
+	_moon.light_energy = 0.0
+	_moon.shadow_enabled = false
+	add_child(_moon)
 	_flash = OmniLight3D.new()
 	_flash.light_energy = 0.0
 	_flash.omni_range = 70.0
@@ -697,7 +703,8 @@ func _update_environment() -> void:
 		horizon = horizon.lerp(Color("#6c7a7e"), rain)
 	_sky_mat.sky_top_color = sky
 	_sky_mat.sky_horizon_color = horizon
-	_sky_mat.ground_horizon_color = horizon.darkened(0.25)
+	var grass_c: Color = b.get("grass", Color("#6aa84f"))
+	_sky_mat.ground_horizon_color = horizon.lerp(grass_c.darkened(0.35), 0.45)
 	_sky_mat.ground_bottom_color = Color("#2a3a3a")
 	_sky_mat.sky_energy_multiplier = 0.75 + day * 0.5
 	_sun.rotation_degrees = Vector3(-rad_to_deg(asin(clampf(sun_elev, -1.0, 1.0))), -35.0, 0.0)
@@ -706,8 +713,12 @@ func _update_environment() -> void:
 		_sun.light_color = Color("#fff4da").lerp(Color("#ffb17a"), dusk)
 	else:
 		_sun.light_color = Color("#fff4da").lerp(Color("#a8c4ff"), night * 0.7)
-	_environment.ambient_light_energy = 0.3 + day * 0.65
+	_environment.ambient_light_energy = 0.36 + day * 0.6
 	_environment.ambient_light_color = Color("#bcd8e0").lerp(Color("#4a648c"), night)
+	_environment.adjustment_brightness = 1.02 - night * 0.06
+	_environment.adjustment_saturation = 1.1 - night * 0.12 - rain * 0.08
+	_moon.rotation_degrees = Vector3(-rad_to_deg(asin(clampf(-sun_elev, -1.0, 1.0))), 145.0, 0.0)
+	_moon.light_energy = night * 0.62 * (1.0 - rain)
 	_environment.fog_light_color = horizon.lerp(Color("#3c4c54"), night * 0.55)
 	_environment.fog_density = 0.0045 + rain * 0.011 + night * 0.002
 	_flash.global_position = focus + Vector3(0, 25, 0)
@@ -724,7 +735,7 @@ func _update_environment() -> void:
 		mc = mc.lerp(Color(0.75, 0.85, 0.95, mc.a), rain)
 		_mote_mat.albedo_color = mc
 		_mote_mat.emission = mc
-		_motes.amount = 72 if firefly else 46
+		_motes.amount = 110 if firefly else 46
 	if _weather_particles != null:
 		_weather_particles.global_position = focus + Vector3(0, 16, 0)
 		var underground := focus.y < float(gen.height_at(floori(focus.x), floori(focus.z)) - 4)

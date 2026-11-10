@@ -761,13 +761,10 @@ func _build_place_ghost() -> void:
 	_ghost_mat = StandardMaterial3D.new()
 	_ghost_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_ghost_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_ghost_mat.albedo_color = Color(0.45, 1.0, 0.55, 0.32)
+	_ghost_mat.albedo_color = Color(0.55, 1.0, 0.65, 0.9)
 	_ghost_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var box := BoxMesh.new()
-	box.size = Vector3(1.004, 1.004, 1.004)
-	box.material = _ghost_mat
 	place_ghost = MeshInstance3D.new()
-	place_ghost.mesh = box
+	place_ghost.mesh = _outline_mesh(0.53, Color(0.55, 1.0, 0.65, 0.9))
 	place_ghost.top_level = true
 	place_ghost.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	place_ghost.visible = false
@@ -1039,20 +1036,33 @@ func _sword_mat(color: Color, emission: float, metallic: float) -> StandardMater
 	return mat
 
 func _build_highlight() -> void:
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(1.0, 0.88, 0.52, 0.2)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var box := BoxMesh.new()
-	box.size = Vector3(1.012, 1.012, 1.012)
-	box.material = mat
 	highlight = MeshInstance3D.new()
-	highlight.mesh = box
+	highlight.mesh = _outline_mesh(0.51, Color(1.0, 0.9, 0.6, 0.95))
 	highlight.top_level = true
 	highlight.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	highlight.visible = false
 	add_child(highlight)
+
+func _outline_mesh(half: float, color: Color) -> ImmediateMesh:
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = color
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.no_depth_test = false
+	var im := ImmediateMesh.new()
+	im.surface_begin(Mesh.PRIMITIVE_LINES, mat)
+	var h := half
+	var c := [
+		Vector3(-h, -h, -h), Vector3(h, -h, -h), Vector3(h, -h, h), Vector3(-h, -h, h),
+		Vector3(-h, h, -h), Vector3(h, h, -h), Vector3(h, h, h), Vector3(-h, h, h),
+	]
+	var e := [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]]
+	for p in e:
+		im.surface_add_vertex(c[p[0]])
+		im.surface_add_vertex(c[p[1]])
+	im.surface_end()
+	return im
 
 func _build_particles() -> void:
 	break_particles = CPUParticles3D.new()

@@ -339,12 +339,12 @@ func _stamp_plants(buf: PackedByteArray, cx: int, cz: int) -> void:
 			var plant := -1
 			match biome:
 				"meadow":
-					if r < 0.07:
+					if r < 0.11:
 						plant = Content.TUFT
 					elif r < 0.083:
 						plant = [Content.FLOWER_RED, Content.FLOWER_YELLOW, Content.FLOWER_BLUE][int(hash01(wx, h, wz, 19) * 3.0) % 3]
 				"mushroom":
-					if r < 0.055:
+					if r < 0.07:
 						plant = Content.SMALL_MUSHROOM
 					elif r < 0.07:
 						plant = Content.FLOWER_BLUE

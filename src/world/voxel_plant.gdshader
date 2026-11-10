@@ -9,12 +9,17 @@ varying vec2 v_plane;
 varying float v_tile;
 varying float v_shade;
 varying float v_emit;
+varying float v_height;
 
 void vertex() {
 	v_plane = UV;
 	v_tile = floor(UV2.x + 0.5);
 	v_shade = COLOR.r;
 	v_emit = COLOR.a;
+	v_height = UV.y;
+	float sway = sin(TIME * 1.7 + (MODEL_MATRIX[3].x + MODEL_MATRIX[3].z) * 0.8);
+	VERTEX.x += sway * v_height * 0.05;
+	VERTEX.z += cos(TIME * 1.3 + MODEL_MATRIX[3].z * 0.9) * v_height * 0.035;
 }
 
 void fragment() {

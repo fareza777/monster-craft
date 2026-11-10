@@ -219,3 +219,21 @@ diganti model voxel 3D sungguhan, dibangun dari box bertingkat seperti pedang.
   y 204-320; saat boss muncul target bergeser ke 176-240 tanpa menabrak.
 - Verifikasi: `--headless -- --ui-test` exit 0; screenshot gameplay 1280x720 diperiksa
   langsung untuk memastikan tidak ada panel yang bertumpuk.
+
+## AAA Visual Pass - Render Quality & Atmosphere
+
+- MSAA 2x dan shadow map 2048 (sebelumnya MSAA mati dan shadow 1024): tepi voxel
+  jauh lebih bersih dan bayangan konsisten di jarak pandang penuh.
+- Jarak bayangan matahari 48 -> 120 blok dan pancake 10 -> 20, sehingga bayangan
+  pohon/creature tidak hilang mendadak di kejauhan.
+- Moonlight baru: lampu directional biru dari sisi berlawanan dengan energi mengikuti
+  malam, membuat malam tidak lagi gelap datar; dikurangi saat hujan.
+- Color grading dinamis: brightness/saturasi bergeser dingin di malam dan saat
+  cuaca buruk, bukan satu preset statis.
+- Warna tanah langit mengikuti warna rumput biome aktif, supaya horizon menyatu
+  dengan lanskap.
+- Kunang-kunang malam 72 -> 110.
+- Tanaman (rumput, bunga, jamur) bergoyang tertiup angin lewat vertex shader,
+  dan densitas tuft padang rumput 7% -> 11%, jamur 5.5% -> 7%.
+- Verifikasi: `--headless -- --ui-test` exit 0; screenshot siang dan malam diambil
+  untuk QA visual.
