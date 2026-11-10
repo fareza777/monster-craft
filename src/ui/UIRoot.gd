@@ -76,6 +76,7 @@ var notif_box: VBoxContainer
 var tracker_card: PanelContainer
 var tracker_box: VBoxContainer
 var tracker_title: Label
+var tracker_name: Label
 var tracker_step: Label
 var tracker_hint: Label
 var banner_box: VBoxContainer
@@ -262,12 +263,12 @@ func _build_stats() -> void:
 func _build_clock() -> void:
 	clock_panel = PanelContainer.new()
 	clock_panel.add_theme_stylebox_override("panel", UITheme.glass_style(16, 0.82))
-	clock_panel.custom_minimum_size = Vector2(300, 0)
+	clock_panel.custom_minimum_size = Vector2(280, 0)
 	clock_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clock_panel.anchor_left = 0.5
 	clock_panel.anchor_right = 0.5
-	clock_panel.offset_left = -150
-	clock_panel.offset_right = 150
+	clock_panel.offset_left = -140
+	clock_panel.offset_right = 140
 	clock_panel.offset_top = 12
 	clock_panel.offset_bottom = 112
 	hud.add_child(clock_panel)
@@ -282,7 +283,7 @@ func _build_menu_buttons() -> void:
 	menu_bar.add_theme_stylebox_override("panel", UITheme.glass_style(18, 0.78))
 	menu_bar.anchor_left = 1
 	menu_bar.anchor_right = 1
-	menu_bar.offset_left = -508
+	menu_bar.offset_left = -484
 	menu_bar.offset_right = -16
 	menu_bar.offset_top = 14
 	menu_bar.offset_bottom = 76
@@ -302,7 +303,7 @@ func _build_menu_buttons() -> void:
 
 func _menu_icon_button(parent: Node, caption: String, kind: String, cb: Callable) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(64, 58)
+	b.custom_minimum_size = Vector2(60, 56)
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_filter = Control.MOUSE_FILTER_STOP
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -632,23 +633,33 @@ func _build_notifications() -> void:
 	notif_box = VBoxContainer.new()
 	notif_box.anchor_left = 1
 	notif_box.anchor_right = 1
-	notif_box.offset_left = -352
-	notif_box.offset_right = -16
-	notif_box.offset_top = 88
-	notif_box.offset_bottom = 420
 	notif_box.add_theme_constant_override("separation", 6)
-	notif_box.alignment = BoxContainer.ALIGNMENT_BEGIN
 	notif_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if is_touch:
+		notif_box.anchor_top = 0
+		notif_box.anchor_bottom = 0
+		notif_box.offset_left = -330
+		notif_box.offset_right = -16
+		notif_box.offset_top = 200
+		notif_box.offset_bottom = 520
+		notif_box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	else:
+		notif_box.anchor_top = 1
+		notif_box.anchor_bottom = 1
+		notif_box.offset_left = -330
+		notif_box.offset_right = -16
+		notif_box.offset_top = -322
+		notif_box.offset_bottom = -108
+		notif_box.alignment = BoxContainer.ALIGNMENT_END
 	hud.add_child(notif_box)
-
 func _build_banner() -> void:
 	banner_box = VBoxContainer.new()
 	banner_box.anchor_left = 0.5
 	banner_box.anchor_right = 0.5
 	banner_box.offset_left = -360
 	banner_box.offset_right = 360
-	banner_box.offset_top = 190
-	banner_box.offset_bottom = 300
+	banner_box.offset_top = 204
+	banner_box.offset_bottom = 320
 	banner_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	banner_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(banner_box)
@@ -800,9 +811,9 @@ func _update_target() -> void:
 			target_panel.offset_top = 176
 			target_panel.offset_bottom = 240
 	else:
-		if target_panel.offset_top != 116:
-			target_panel.offset_top = 116
-			target_panel.offset_bottom = 180
+		if target_panel.offset_top != 124:
+			target_panel.offset_top = 124
+			target_panel.offset_bottom = 188
 	target_name.text = target.display_name
 	target_sub.text = "Lv%d • %s" % [target.level, Content.element_name(str(target.sp.get("element", "")))]
 	target_sub.add_theme_color_override("font_color", Content.element_color(str(target.sp.get("element", ""))))
@@ -977,8 +988,8 @@ func show_boss(name: String, hp: int, maxhp: int) -> void:
 	boss_bar.max_value = maxhp
 	boss_bar.value = hp
 	if target_panel.visible:
-		target_panel.offset_top = 196
-		target_panel.offset_bottom = 312
+		target_panel.offset_top = 176
+		target_panel.offset_bottom = 240
 
 func update_boss(hp: int, maxhp: int) -> void:
 	if not boss_panel.visible:
@@ -989,8 +1000,8 @@ func update_boss(hp: int, maxhp: int) -> void:
 func hide_boss() -> void:
 	boss_panel.visible = false
 	if target_panel.visible:
-		target_panel.offset_top = 128
-		target_panel.offset_bottom = 244
+		target_panel.offset_top = 124
+		target_panel.offset_bottom = 188
 
 func on_rift_state(wave: int, remaining: int) -> void:
 	if wave <= 0:
@@ -1941,25 +1952,34 @@ func _story_card(q: Dictionary, kind: String, index: int, tracked_id: String) ->
 
 func _build_quest_tracker() -> void:
 	tracker_card = PanelContainer.new()
-	var sb := UITheme.glass_style(14, 0.72)
-	sb.content_margin_left = 14
-	sb.content_margin_top = 11
-	sb.content_margin_right = 14
-	sb.content_margin_bottom = 11
+	var sb := UITheme.glass_style(14, 0.8)
+	sb.content_margin_left = 12
+	sb.content_margin_top = 9
+	sb.content_margin_right = 12
+	sb.content_margin_bottom = 9
+	sb.border_width_left = 3
 	tracker_card.add_theme_stylebox_override("panel", sb)
 	tracker_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tracker_card.visible = false
 	add_child(tracker_card)
-	_pin(tracker_card, 1.0, 0.0, 1.0, 0.0, -386.0, 96.0, -24.0, 250.0)
-	tracker_box = UITheme.make_vbox(tracker_card, 3)
-	tracker_title = UITheme.make_label(tracker_box, "MAIN", 10, UITheme.AMBER)
-	tracker_step = UITheme.make_label(tracker_box, "", 13, UITheme.INK)
-	tracker_step.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tracker_step.custom_minimum_size = Vector2(330, 0)
-	tracker_hint = UITheme.make_label(tracker_box, "", 11, UITheme.MUTED)
+	_pin(tracker_card, 1.0, 0.0, 1.0, 0.0, -322.0, 88.0, -16.0, 164.0)
+	tracker_box = UITheme.make_vbox(tracker_card, 1)
+	var head := UITheme.make_hbox(tracker_box, 6)
+	tracker_title = UITheme.make_label(head, "MAIN STORY", 9, UITheme.AMBER)
+	tracker_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tracker_hint = UITheme.make_label(head, "", 9, UITheme.MUTED, HORIZONTAL_ALIGNMENT_RIGHT)
+	tracker_name = UITheme.make_label(tracker_box, "", 13, UITheme.INK)
+	tracker_name.clip_text = true
+	tracker_name.custom_minimum_size = Vector2(286, 0)
+	tracker_step = UITheme.make_label(tracker_box, "", 11, Color(0.83, 0.88, 0.8))
+	tracker_step.clip_text = true
+	tracker_step.custom_minimum_size = Vector2(286, 0)
 
 func _update_quest_tracker() -> void:
 	if tracker_card == null or not is_instance_valid(tracker_card):
+		return
+	if not Game.in_game:
+		tracker_card.visible = false
 		return
 	var q := Game.tracked_story_quest()
 	if q.is_empty():
@@ -1968,14 +1988,20 @@ func _update_quest_tracker() -> void:
 	var rec: Dictionary = Game.story.get(str(q.id), {})
 	tracker_card.visible = true
 	var is_main := str(q.kind) == "main"
-	tracker_title.text = ("MAIN STORY" if is_main else "SIDE QUEST")
-	tracker_title.add_theme_color_override("font_color", UITheme.AMBER if is_main else UITheme.TEAL)
-	tracker_step.text = "%s\n%s" % [str(q.title), Game.story_step_text(q, rec)]
+	var accent: Color = UITheme.AMBER if is_main else UITheme.TEAL
+	tracker_title.text = "MAIN STORY" if is_main else "SIDE QUEST"
+	tracker_title.add_theme_color_override("font_color", accent)
+	var sb := UITheme.glass_style(14, 0.8)
+	sb.border_width_left = 3
+	sb.border_color = Color(accent.r, accent.g, accent.b, 0.6)
+	tracker_card.add_theme_stylebox_override("panel", sb)
+	tracker_name.text = str(q.title)
+	tracker_step.text = Game.story_step_text(q, rec)
 	var pos := Vector3.ZERO
 	if main != null and main.has_method("quest_marker_position"):
 		pos = main.call("quest_marker_position", q)
 	if pos != Vector3.ZERO and player != null:
-		tracker_hint.text = "%s  •  %d m" % [str(q.giver), int(player.global_position.distance_to(pos))]
+		tracker_hint.text = "%dm" % int(player.global_position.distance_to(pos))
 	else:
 		tracker_hint.text = str(q.giver)
 func _track_dungeon() -> void:

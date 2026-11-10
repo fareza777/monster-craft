@@ -204,3 +204,18 @@ diganti model voxel 3D sungguhan, dibangun dari box bertingkat seperti pedang.
   terasa bertekstur tanpa mengganggu mata dan muka.
 - Verifikasi: --headless -- --ui-test exit 0 tanpa parse/runtime error; screenshot
   gameplay memperlihatkan pickaxe voxel di tangan.
+
+## HUD Cleanup - No Overlap, Compact Tracker
+
+- Quest tracker dikecilkan dari kartu 362x154 menjadi kartu ringkas 306x76 di kanan atas:
+  satu baris kicker + jarak, satu baris judul quest, satu baris step aktif dengan clip,
+  dan garis aksen kiri yang mengikuti warna main/side. Tidak lagi menutupi layar.
+- Notifikasi/toast dipindah ke kanan bawah (di atas hotbar) untuk desktop, jadi tidak
+  pernah menimpa tracker quest. Di perangkat sentuh tetap di kanan atas, tapi dimulai
+  di bawah tracker.
+- Baris atas dirapikan: panel jam dipersempit (280) dan dock menu digeser, sehingga jam
+  dan tombol menu tidak lagi saling menumpuk di lebar 1280.
+- Kartu target monster turun ke y 124-188 (jeda 12px dari jam) dan banner dipindah ke
+  y 204-320; saat boss muncul target bergeser ke 176-240 tanpa menabrak.
+- Verifikasi: `--headless -- --ui-test` exit 0; screenshot gameplay 1280x720 diperiksa
+  langsung untuk memastikan tidak ada panel yang bertumpuk.
