@@ -77,6 +77,7 @@ var _held_cache: Dictionary = {}
 var _color_cache: Dictionary = {}
 var _portrait_cache: Dictionary = {}
 var _monster_mat_cache: Dictionary = {}
+var _monster_tex_cache: Dictionary = {}
 
 func _ready() -> void:
 	for i in PixelArt.TILE_NAMES.size():
@@ -917,20 +918,74 @@ func get_monster_portrait(species_id: String) -> Texture2D:
 	_portrait_cache[species_id] = tex
 	return tex
 
-func monster_material(color: Color, emissive: bool = false, alpha: float = 1.0) -> StandardMaterial3D:
-	var key := "%s_%s_%s" % [color.to_html(), emissive, alpha]
+
+func _pattern_value(pattern: String, x: int, y: int) -> float:
+	match pattern:
+					"fur":
+									return 0.55 if ((x * 7 + y * 13) % 9) == 0 else (-0.4 if ((x + y * 3) % 11) == 0 else 0.0)
+					"scale":
+									var off := 0 if (y / 3) % 2 == 0 else 2
+									return -0.6 if ((x + off) % 4 == 0 or y % 3 == 0) else 0.25
+					"crack":
+									return -0.85 if ((x * 3 + y * 5) % 17) == 0 or ((x + y) % 23) == 0 else 0.2
+					"ember":
+									return 0.9 if ((x * 2 + y) % 7) == 0 else (-0.5 if ((x + y * 2) % 13) == 0 else 0.0)
+					"spark":
+									return 1.0 if ((x * 5 - y * 3) % 19) == 0 else 0.0
+					"spore":
+									return 0.7 if ((x * x + y * y) % 11) < 2 else -0.3
+					"sand":
+									return -0.35 if y % 4 == 0 else 0.15
+					"crystal":
+									return 0.8 if ((x + y) % 6) == 0 else -0.4
+					"void":
+									return 0.9 if ((x * 13 + y * 7) % 29) == 0 else 0.0
+	return 0.0
+
+func monster_texture(color: Color, pattern: String) -> ImageTexture:
+	var key := "%s_%s" % [color.to_html(), pattern]
+	if _monster_tex_cache.has(key):
+					return _monster_tex_cache[key]
+	var size := 24
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var top := color.lightened(0.17)
+	var bottom := color.darkened(0.24)
+	for y in size:
+					var t := float(y) / float(size - 1)
+					var base := bottom.lerp(top, 1.0 - t)
+					for x in size:
+									var shade := _pattern_value(pattern, x, y)
+									var c := base
+									if shade > 0.0:
+													c = base.lightened(0.11 * shade)
+									elif shade < 0.0:
+													c = base.darkened(0.14 * -shade)
+									img.set_pixel(x, y, c)
+	var tex := ImageTexture.create_from_image(img)
+	_monster_tex_cache[key] = tex
+	return tex
+
+func monster_material(color: Color, emissive: bool = false, alpha: float = 1.0,
+					pattern: String = "") -> StandardMaterial3D:
+	var key := "%s_%s_%s_%s" % [color.to_html(), emissive, alpha, pattern]
 	if _monster_mat_cache.has(key):
-		return _monster_mat_cache[key]
+					return _monster_mat_cache[key]
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(color.r, color.g, color.b, alpha)
-	mat.roughness = 0.85
+	mat.roughness = 0.9
 	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	if alpha < 1.0:
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	if emissive:
-		mat.emission_enabled = true
-		mat.emission = color
-		mat.emission_energy_multiplier = 0.7
+					mat.emission_enabled = true
+					mat.emission = color
+					mat.emission_energy_multiplier = 0.7
+	elif pattern != "":
+					mat.albedo_color = Color(1, 1, 1, alpha)
+					mat.albedo_texture = monster_texture(color, pattern)
+					mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+					mat.uv1_scale = Vector3(1.7, 1.7, 1.7)
+					mat.uv1_triplanar = false
 	_monster_mat_cache[key] = mat
 	return mat
 

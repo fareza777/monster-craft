@@ -25,6 +25,7 @@ var camera: Camera3D
 var hand_root: Node3D
 var held_sprite: Sprite3D
 var sword_models: Dictionary = {}
+var tool_models: Dictionary = {}
 var block_cube: MeshInstance3D
 var orb_mesh: MeshInstance3D
 var place_ghost: MeshInstance3D
@@ -772,6 +773,7 @@ func _build_place_ghost() -> void:
 	place_ghost.visible = false
 	add_child(place_ghost)
 
+
 func _refresh_held() -> void:
 	if hand_root == null:
 		return
@@ -779,6 +781,9 @@ func _refresh_held() -> void:
 	block_cube.visible = false
 	orb_mesh.visible = false
 	for model in sword_models.values():
+		if model is Node3D:
+			model.visible = false
+	for model in tool_models.values():
 		if model is Node3D:
 			model.visible = false
 	held_sprite.position = Vector3(0, 0.04, 0)
@@ -789,7 +794,11 @@ func _refresh_held() -> void:
 		return
 	var it: Dictionary = Content.ITEMS.get(str(slot.get("id", "")), {})
 	var itype: String = str(it.get("type", ""))
-	if itype == "block":
+	if str(slot.get("id", "")) == "torch":
+		var torch_model := _get_tool_model("torch", 0)
+		if torch_model != null:
+			torch_model.visible = true
+	elif itype == "block":
 		block_cube.visible = true
 		_cube_mat.albedo_color = Content.block_color(int(it.get("block", -1)))
 	elif itype == "orb":
@@ -798,6 +807,10 @@ func _refresh_held() -> void:
 		_orb_mat.emission = Content._as_color(it.get("color", "#6acfc4"))
 	elif str(it.get("tool_kind", "")) == "sword":
 		_get_sword_model(int(it.get("tier", 1))).visible = true
+	elif itype == "tool":
+		var tool_model := _get_tool_model(str(it.get("tool_kind", "")), int(it.get("tier", 1)))
+		if tool_model != null:
+			tool_model.visible = true
 	else:
 		held_sprite.visible = true
 		var tex := Content.get_held_texture(str(slot.get("id", "")))
@@ -810,6 +823,98 @@ func _refresh_held() -> void:
 			held_sprite.pixel_size = 0.34 / tex_h
 		else:
 			held_sprite.pixel_size = 0.27 / tex_h
+
+func _get_tool_model(kind: String, tier: int) -> Node3D:
+	if kind == "" or kind == "sword":
+		return null
+	var key := "%s_%d" % [kind, tier]
+	if tool_models.has(key):
+		return tool_models[key]
+	var model := _make_voxel_tool(kind, tier)
+	model.visible = false
+	hand_root.add_child(model)
+	tool_models[key] = model
+	return model
+
+func _tool_head_color(tier: int) -> Color:
+	match tier:
+		1:
+			return Color("#a97a46")
+		2:
+			return Color("#8f989e")
+		3:
+			return Color("#c4ced3")
+	return Color("#6fe4d4")
+
+func _make_voxel_tool(kind: String, tier: int) -> Node3D:
+	var root := Node3D.new()
+	root.position = Vector3(-0.1, -0.075, 0.02)
+	root.rotation_degrees = Vector3(-12.0, 8.0, -14.0)
+	root.scale = Vector3(0.9, 0.9, 0.9)
+	var head_col := _tool_head_color(tier)
+	var metal := 0.0
+	var glow := 0.0
+	if kind == "torch":
+		head_col = Color("#f0b857")
+		metal = 0.3
+		glow = 1.4
+	else:
+		if tier >= 2:
+			metal = 0.5
+		if tier >= 3:
+			glow = 0.16
+		if tier >= 4:
+			glow = 0.5
+	var head_mat := _sword_mat(head_col, glow, metal)
+	var head_hi := _sword_mat(head_col.lightened(0.3), glow + 0.15, maxf(metal, 0.25))
+	var wood := _sword_mat(Color("#7a542c"), 0.0, 0.0)
+	var wood_hi := _sword_mat(Color("#a87944"), 0.0, 0.0)
+	var wood_dark := _sword_mat(Color("#553a1f"), 0.0, 0.0)
+	var skin := _sword_mat(Color("#d8a97f"), 0.0, 0.0)
+	var sleeve := _sword_mat(Color("#3f6b5a"), 0.0, 0.0)
+	if kind == "torch":
+		_sword_box(root, Vector3(0.046, 0.46, 0.046), Vector3(0, 0.08, 0), wood)
+		for i in 2:
+			_sword_box(root, Vector3(0.052, 0.016, 0.052), Vector3(0, 0.02 + 0.07 * i, 0), wood_dark)
+		_sword_box(root, Vector3(0.078, 0.08, 0.078), Vector3(0, 0.335, 0), wood_dark)
+		_sword_box(root, Vector3(0.062, 0.062, 0.062), Vector3(0, 0.404, 0), head_mat)
+		var tip := _sword_box(root, Vector3(0.038, 0.05, 0.038), Vector3(0, 0.458, 0), head_mat)
+		tip.rotation_degrees.y = 45.0
+	else:
+		_sword_box(root, Vector3(0.05, 0.5, 0.05), Vector3(0, 0.09, 0), wood)
+		_sword_box(root, Vector3(0.026, 0.46, 0.054), Vector3(0, 0.09, 0.002), wood_hi)
+		for i in 3:
+			_sword_box(root, Vector3(0.056, 0.016, 0.056), Vector3(0, 0.055 * i, 0), wood_dark)
+		if kind == "pick":
+			_sword_box(root, Vector3(0.32, 0.052, 0.058), Vector3(0, 0.335, 0), head_mat)
+			_sword_box(root, Vector3(0.27, 0.013, 0.062), Vector3(0, 0.362, 0), head_hi)
+			var left_tip := _sword_box(root, Vector3(0.14, 0.058, 0.058), Vector3(-0.175, 0.305, 0), head_mat)
+			left_tip.rotation_degrees.z = 34.0
+			var right_tip := _sword_box(root, Vector3(0.14, 0.058, 0.058), Vector3(0.175, 0.305, 0), head_mat)
+			right_tip.rotation_degrees.z = -34.0
+			_sword_box(root, Vector3(0.082, 0.075, 0.082), Vector3(0, 0.3, 0), wood_dark)
+		elif kind == "axe":
+			var blade := _sword_box(root, Vector3(0.145, 0.2, 0.055), Vector3(0.07, 0.315, 0), head_mat)
+			blade.rotation_degrees.z = -7.0
+			_sword_box(root, Vector3(0.032, 0.2, 0.06), Vector3(0.146, 0.315, 0), head_hi)
+			_sword_box(root, Vector3(0.075, 0.105, 0.08), Vector3(-0.012, 0.315, 0), wood_dark)
+			_sword_box(root, Vector3(0.11, 0.035, 0.058), Vector3(0.05, 0.418, 0), head_hi)
+		elif kind == "shovel":
+			_sword_box(root, Vector3(0.066, 0.08, 0.066), Vector3(0, 0.31, 0), wood_dark)
+			_sword_box(root, Vector3(0.17, 0.16, 0.045), Vector3(0, 0.405, 0.012), head_mat)
+			_sword_box(root, Vector3(0.182, 0.032, 0.058), Vector3(0, 0.487, 0.012), head_hi)
+			_sword_box(root, Vector3(0.03, 0.13, 0.05), Vector3(0, 0.4, 0.02), head_hi)
+		elif kind == "hoe":
+			_sword_box(root, Vector3(0.05, 0.09, 0.05), Vector3(0, 0.31, 0), wood_dark)
+			_sword_box(root, Vector3(0.18, 0.042, 0.05), Vector3(0.085, 0.35, 0), head_mat)
+			_sword_box(root, Vector3(0.038, 0.095, 0.05), Vector3(0.166, 0.318, 0), head_hi)
+		else:
+			_sword_box(root, Vector3(0.1, 0.16, 0.1), Vector3(0, 0.34, 0), head_mat)
+	_sword_box(root, Vector3(0.112, 0.12, 0.112), Vector3(0, -0.075, 0.008), skin)
+	_sword_box(root, Vector3(0.078, 0.048, 0.052), Vector3(0.014, -0.055, 0.064), skin)
+	_sword_box(root, Vector3(0.05, 0.038, 0.055), Vector3(-0.01, -0.088, 0.064), skin)
+	_sword_box(root, Vector3(0.128, 0.15, 0.128), Vector3(0, -0.2, 0.006), sleeve)
+	return root
 
 func _get_sword_model(tier: int) -> Node3D:
 	tier = clampi(tier, 1, 4)

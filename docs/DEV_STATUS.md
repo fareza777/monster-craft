@@ -173,3 +173,34 @@ dan halaman quest baru. Semua perubahan di bawah sudah diverifikasi headless + r
   screenshot: `screenshots/game.png`, `screenshots/quests.png`.
 - `tools/validate_content.gd` lolos tanpa problem setelah biome data dirapikan dan validator
   template quest diperbaiki (template memang tidak menyimpan title; title dibuat `make_quest`).
+
+## Held Viewmodel - Voxel Tools
+
+Viewmodel alat yang sebelumnya memakai billboard sprite 2D (datar dan terlihat melayang)
+diganti model voxel 3D sungguhan, dibangun dari box bertingkat seperti pedang.
+
+- Model voxel baru untuk pickaxe, axe, shovel, hoe, dan torch, plus lengan/fist blocky
+  supaya alat terlihat dipegang, bukan melayang.
+- Posisi, rotasi, dan skala per-alat disetel agar kepala alat terbaca jelas di kamera;
+  cache `tool_models` per `kind_tier` supaya tidak dibangun ulang saat ganti slot.
+- Warna material mengikuti tier item: kayu, batu, besi, crystal (tier 3-4 memakai emission).
+  Torch memakai emisi amber dan tetap menyala di tangan.
+- Pedang voxel yang sudah ada tetap dipakai; blok dan orb tidak berubah.
+- Verifikasi: `--headless -- --ui-test` exit 0; screenshot gameplay memperlihatkan
+  pickaxe voxel di tangan kanan.
+
+## World Items & Creature Textures
+
+- Item drop di dunia tidak lagi kotak polos: setiap kategori punya model voxel mini
+  (pickaxe/axe/shovel/hoe/sword, torch menyala, ingot, gem, orb, potion, berry, seeds,
+  wheat, fiber, leather, feed, saddle, stick). Model berputar dan bob seperti item drop
+  pada umumnya, dengan emissive untuk crystal/amber/core/rift key/orb.
+- Tekstur creature baru: Content.monster_texture() membuat tekstur 24x24 prosedural per
+  warna dengan gradient vertikal (atas lebih terang, bawah lebih gelap) plus pola sesuai
+  elemen - fur, scale, crack, ember, spark, spore, sand, crystal, void.
+  Content.monster_material() memakainya dengan filter NEAREST dan uv scale 1.7, sehingga badan
+  monster tidak lagi flat satu warna.
+- Portrait Codex diberi grain halus (fur/scale specks) di area kepala, jadi ilustrasi
+  terasa bertekstur tanpa mengganggu mata dan muka.
+- Verifikasi: --headless -- --ui-test exit 0 tanpa parse/runtime error; screenshot
+  gameplay memperlihatkan pickaxe voxel di tangan.

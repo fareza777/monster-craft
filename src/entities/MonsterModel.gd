@@ -9,6 +9,7 @@ var colors: Dictionary = {}
 var shape := "quad"
 var variant := "normal"
 var boss := false
+var pattern := ""
 var legs: Array[Node3D] = []
 var wings: Array[Node3D] = []
 var tails: Array[Node3D] = []
@@ -31,6 +32,7 @@ func build(p_species: String, p_variant: String = "normal", p_boss: bool = false
 		colors.accent = Color("#ffd76a")
 		colors.eye = Color("#5d3b0e")
 	shape = str(sp.shape)
+	pattern = _pattern_for_element(str(sp.get("element", "Nature")))
 	var s: float = float(sp.get("scale", 0.8)) * (1.55 if boss else 1.0)
 	scale = Vector3(s, s, s)
 	_build_blob()
@@ -63,6 +65,33 @@ func _build_blob() -> void:
 	blob.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(blob)
 
+
+func _pattern_for_element(el: String) -> String:
+	match el:
+					"Fire":
+									return "ember"
+					"Frost":
+									return "crystal"
+					"Water":
+									return "scale"
+					"Stone":
+									return "crack"
+					"Sand":
+									return "sand"
+					"Spark":
+									return "spark"
+					"Toxic":
+									return "spore"
+					"Void":
+									return "void"
+					"Shadow":
+									return "void"
+					"Light":
+									return "crystal"
+					"Wind":
+									return "fur"
+	return "fur"
+
 func _base() -> Color:
 	return colors.get("body", Color("#7cc86a"))
 
@@ -80,7 +109,7 @@ func _box(parent: Node3D, size: Vector3, pos: Vector3, color: Color,
 	var mi := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = size
-	var mat := Content.monster_material(color, emissive)
+	var mat := Content.monster_material(color, emissive, 1.0, pattern)
 	mesh.material = mat
 	mi.mesh = mesh
 	mi.position = pos

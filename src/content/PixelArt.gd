@@ -1292,5 +1292,19 @@ static func portrait(shape: String, body: Color, belly: Color, accent: Color, ey
 	# forehead accent
 	_diamond(img, 32, 21, 4.5, accent)
 	_diamond(img, 32, 21, 2.0, accent.lightened(0.4))
+
+	# fine grain so the portrait reads as fur / scales instead of a flat fill
+	var grain_dark := body.darkened(0.16)
+	var grain_light := body.lightened(0.13)
+	for gy in range(22, 57, 3):
+		for gx in range(12, 53, 4):
+			var base_px := img.get_pixel(gx, gy)
+			if base_px.a < 0.5 or base_px.v > 0.82:
+				continue
+			var pick := int(abs(sin(float(gx) * 12.9898 + float(gy) * 78.233)) * 43758.55) % 3
+			if pick == 0:
+				_px(img, gx, gy, grain_dark)
+			elif pick == 1 and gx + 1 < 64:
+				_px(img, gx + 1, gy, grain_light)
 	_outline(img, dark, 0.4)
 	return img
