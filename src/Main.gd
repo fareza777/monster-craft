@@ -28,6 +28,7 @@ var _showcase := false
 var _ui_test := false
 var _panel_arg := ""
 var _goto_arg := ""
+var _vignette: CanvasLayer
 var _autoload_slot := 0
 var _time_arg := -1.0
 
@@ -156,6 +157,20 @@ func _build_loading() -> void:
 	loading_tips.text = "Tip: passive monsters are easier to tame with Feed.\nBuild a Ranch Banner for breeding and automated workers."
 	v.add_child(loading_tips)
 
+func _build_vignette() -> void:
+	if _vignette != null and is_instance_valid(_vignette):
+		return
+	_vignette = CanvasLayer.new()
+	_vignette.layer = 2
+	add_child(_vignette)
+	var rect := ColorRect.new()
+	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://src/ui/vignette.gdshader")
+	rect.material = mat
+	_vignette.add_child(rect)
+
 func _show_menu() -> void:
 	_clear_menu()
 	menu_backdrop = MenuBackdrop.new()
@@ -205,6 +220,7 @@ func _launch_world(loaded: bool) -> void:
 	world = VoxelWorld.new()
 	world.name = "VoxelWorld"
 	add_child(world)
+	_build_vignette()
 	world.initial_ready.connect(_on_world_ready, CONNECT_ONE_SHOT)
 	world.setup(Game.seed_value, Game.pending_world_data if loaded else {}, Vector3.ZERO)
 	Game.spawn_point = world.spawn_point

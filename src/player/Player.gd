@@ -38,6 +38,9 @@ var _ghost_mat: StandardMaterial3D
 var dodge_timer := 0.0
 var dodge_cooldown := 0.0
 var dodge_dir := Vector3.ZERO
+var crack_mesh: MeshInstance3D
+var _crack_mat: StandardMaterial3D
+var _crack_stage := -1
 var _particle_mat: StandardMaterial3D
 
 var primary_held := false
@@ -89,6 +92,7 @@ func _ready() -> void:
 	_build_place_ghost()
 	_build_highlight()
 	_build_arm()
+	_build_crack()
 	_build_particles()
 	_ensure_input()
 	Game.inventory_changed.connect(_refresh_held)
@@ -414,6 +418,37 @@ func _update_look_and_hand(delta: float) -> void:
 		hand_root.position = Vector3(0.35 + sway * 2.1 - _look_sway.x * 0.045 + sway2, -0.35 + bob * 0.95 + idle + dip * 0.55 - _look_sway.y * 0.03, -0.82 - swing * 0.15)
 		hand_root.rotation_degrees = Vector3(-4.0 - swing * 46.0 + _look_sway.y * 4.0, swing * 12.0 + _look_sway.x * 7.0, -6.0 + sway * 170.0 + swing * 16.0)
 	_update_place_ghost()
+	_update_crack()
+
+func _build_crack() -> void:
+	_crack_mat = StandardMaterial3D.new()
+	_crack_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_crack_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_crack_mat.albedo_color = Color(1.0, 1.0, 1.0, 0.9)
+	_crack_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_crack_mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	var box := BoxMesh.new()
+	box.size = Vector3(1.01, 1.01, 1.01)
+	box.material = _crack_mat
+	crack_mesh = MeshInstance3D.new()
+	crack_mesh.mesh = box
+	crack_mesh.top_level = true
+	crack_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	crack_mesh.visible = false
+	add_child(crack_mesh)
+
+func _update_crack() -> void:
+	if crack_mesh == null:
+		return
+	if not mining_valid or not primary_held or _dead or mining_progress <= 0.02:
+		crack_mesh.visible = false
+		return
+	crack_mesh.visible = true
+	crack_mesh.global_position = Vector3(mining_target) + Vector3(0.5, 0.5, 0.5)
+	var stage := clampi(int(mining_progress * 4.0), 0, 3)
+	if stage != _crack_stage:
+		_crack_stage = stage
+		_crack_mat.albedo_texture = Content.crack_texture(stage)
 
 func _detect_look_target() -> void:
 	if world == null or camera == null:
@@ -428,7 +463,10 @@ func _detect_look_target() -> void:
 		return
 	highlight.visible = true
 	highlight.global_position = Vector3(hit.pos) + Vector3(0.5, 0.5, 0.5)
-	highlight.scale = Vector3(1.006, 1.006, 1.006)
+	if Content.is_plant(hit.block):
+		highlight.visible = false
+	else:
+		highlight.scale = Vector3(1.006, 1.006, 1.006)
 
 func _block_sfx(block: int) -> String:
 	var bd: Dictionary = Content.BLOCKS.get(block, {})

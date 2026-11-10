@@ -74,6 +74,7 @@ var atlas_image: Image
 var atlas_texture: ImageTexture
 var _icon_cache: Dictionary = {}
 var _held_cache: Dictionary = {}
+var _crack_cache: Dictionary = {}
 var _color_cache: Dictionary = {}
 var _portrait_cache: Dictionary = {}
 var _monster_mat_cache: Dictionary = {}
@@ -384,6 +385,9 @@ func _build_recipes() -> void:
 	_recipe("plaster", 4, {"sand": 2, "fiber": 2}, "Blocks")
 	_recipe("door", 1, {"planks": 4}, "Blocks")
 	_recipe("gravel", 2, {"stone": 1, "sand": 1}, "Blocks")
+
+	_recipe("roast_berry", 1, {"berry": 3, "coal": 1}, "Food")
+	_recipe("potion", 1, {"roast_berry": 2, "glass": 1}, "Food")
 
 	_recipe("pick_wood", 1, {"planks": 3, "stick": 2}, "Tools")
 	_recipe("axe_wood", 1, {"planks": 3, "stick": 2}, "Tools")
@@ -874,6 +878,14 @@ func get_block_icon(block_id: int) -> Texture2D:
 	if ITEMS.has(key):
 		return get_icon(key)
 	return atlas_texture
+
+func crack_texture(stage: int) -> ImageTexture:
+	var s := clampi(stage, 0, 3)
+	if _crack_cache.has(s):
+		return _crack_cache[s]
+	var tex := ImageTexture.create_from_image(PixelArt.crack_image(s))
+	_crack_cache[s] = tex
+	return tex
 
 func block_color(block_id: int) -> Color:
 	if _color_cache.has(block_id):

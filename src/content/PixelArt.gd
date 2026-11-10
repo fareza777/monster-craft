@@ -491,6 +491,23 @@ static func tile_image(tile_name: String) -> Image:
 			_noise_fill(img, Color("#b04ac0"), 0.1, 999)
 	return img
 
+static func crack_image(stage: int) -> Image:
+	var img := _new_img()
+	var seedv := 210 + stage * 7
+	var count := 2 + stage * 3
+	for i in count:
+		var x0 := int(hash01(i, 1, seedv) * T)
+		var y0 := int(hash01(i, 2, seedv) * T)
+		var ang := hash01(i, 3, seedv) * TAU
+		var length := 2.0 + hash01(i, 4, seedv) * (3.0 + float(stage) * 1.6)
+		var x1 := clampi(x0 + int(cos(ang) * length), 0, T - 1)
+		var y1 := clampi(y0 + int(sin(ang) * length), 0, T - 1)
+		_line(img, x0, y0, x1, y1, Color(0.05, 0.04, 0.03, 0.9))
+		_line(img, x0, y0 + 1, x1, y1 + 1, Color(0.15, 0.13, 0.11, 0.5))
+		if stage >= 2:
+			_line(img, x0 - 1, y0, x0 + 1, y0 + 2, Color(0.05, 0.04, 0.03, 0.7))
+	return img
+
 static func make_atlas(columns: int = 16) -> Image:
 	var rows := int(ceil(float(TILE_NAMES.size()) / float(columns)))
 	var atlas := Image.create(columns * T, rows * T, false, Image.FORMAT_RGBA8)

@@ -63,7 +63,7 @@ func setup(world_seed: int, save_data: Dictionary, fallback_spawn: Vector3 = Vec
 		if s is Array and s.size() >= 3:
 			spawn_point = Vector3(float(s[0]), float(s[1]), float(s[2]))
 	if spawn_point == Vector3.ZERO:
-		spawn_point = gen.find_spawn()
+		spawn_point = _pick_hero_spawn()
 	var saved_pos := spawn_point
 	if save_data.has("player"):
 		saved_player_state = save_data.player
@@ -81,8 +81,75 @@ func setup(world_seed: int, save_data: Dictionary, fallback_spawn: Vector3 = Vec
 	_stream_timer = 0.0
 	print("[MonsterCraft] World setup seed=%d spawn=%s focus=%s" % [seed_value, spawn_point, focus])
 
+func _pick_hero_spawn() -> Vector3:
+	var base: Vector3 = gen.find_spawn()
+	var best := base
+	var best_score := -1.0
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 77
+	for i in 26:
+		var hx := floori(base.x + rng.randf_range(-140.0, 140.0))
+		var hz := floori(base.z + rng.randf_range(-140.0, 140.0))
+		var h := gen.height_at(hx, hz)
+		if h <= TerrainGen.SEA + 2 or h >= TerrainGen.HEIGHT - 14:
+			continue
+		if gen.slope_at(hx, hz) > 4:
+			continue
+		var near_tree := false
+		var ccx := floori(float(hx) / float(TerrainGen.CHUNK))
+		var ccz := floori(float(hz) / float(TerrainGen.CHUNK))
+		for ox in range(-1, 2):
+			for oz in range(-1, 2):
+				for t in gen._tree_list_for_chunk(ccx + ox, ccz + oz):
+					if Vector2(float(t.x) - float(hx), float(t.z) - float(hz)).length() < 7.5:
+						near_tree = true
+		if near_tree:
+			continue
+		var delta := 0
+		var water := 999
+		for d in [18, 30, 44]:
+			for k in 8:
+				var ang := float(k) * TAU / 8.0
+				var sh := gen.height_at(hx + int(cos(ang) * float(d)), hz + int(sin(ang) * float(d)))
+				delta = maxi(delta, absi(sh - h))
+				if sh < TerrainGen.SEA:
+					water = mini(water, d)
+		var score := float(mini(delta, 22))
+		if water < 70:
+			score += 8.0
+		if gen.biome_at(hx, hz) == "meadow":
+			score += 6.0
+		if score > best_score:
+			best_score = score
+			best = Vector3(float(hx) + 0.5, float(h + 1), float(hz) + 0.5)
+	return best
+
+func _apply_color_lut() -> void:
+	var img := Image.create(256, 1, false, Image.FORMAT_RGB8)
+	for i in 256:
+		var x := float(i) / 255.0
+		var v := pow(x, 0.92)
+		var lift := 0.03 * (1.0 - x)
+		img.set_pixel(i, 0, Color(
+			clampf(v * 1.04 + lift * 0.5, 0.0, 1.0),
+			clampf(v + lift * 0.95, 0.0, 1.0),
+			clampf(v * 0.95 + lift * 1.35, 0.0, 1.0)))
+	_environment.adjustment_color_correction = ImageTexture.create_from_image(img)
+
+func _clear_spawn_area() -> void:
+	var px := floori(spawn_point.x)
+	var pz := floori(spawn_point.z)
+	for dx in range(-3, 4):
+		for dz in range(-3, 4):
+			var base := gen.height_at(px + dx, pz + dz)
+			for dy in range(1, 17):
+				var p := Vector3i(px + dx, base + dy, pz + dz)
+				if get_block(p) != Content.AIR:
+					set_block(p, Content.AIR)
+
 func _ready() -> void:
 	set_process(true)
+	_clear_spawn_area.call_deferred()
 
 func set_player(p: Node3D) -> void:
 	player = p
@@ -653,6 +720,7 @@ func _build_environment() -> void:
 	_environment.adjustment_contrast = 1.09
 	_environment.adjustment_saturation = 1.02
 	_environment.tonemap_exposure = 1.0
+	_apply_color_lut()
 	_environment.fog_enabled = true
 	_environment.fog_light_color = Color("#b6d9d0")
 	_environment.fog_light_energy = 0.8

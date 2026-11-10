@@ -1453,7 +1453,7 @@ func _unequip(slot: String) -> void:
 # ------------------------------------------------------------------ panels: crafting
 
 func _build_crafting() -> void:
-	var cats := ["All", "Blocks", "Tools", "Monster", "Misc"]
+	var cats := ["All", "Blocks", "Tools", "Food", "Monster", "Misc"]
 	var row := UITheme.make_hbox(modal_content, 6)
 	for cat in cats:
 		var b := UITheme.make_button(row, cat, "primary" if craft_cat == cat else "normal", 40, 14)

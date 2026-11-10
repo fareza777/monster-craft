@@ -27,6 +27,10 @@ void fragment() {
 	vec2 uv = (cell * tile_px + local * tile_px) / atlas_size;
 	vec4 tex = texture(atlas_tex, uv);
 	ALBEDO = tex.rgb * COLOR.rgb;
+	// contact AO: darken the base of side faces so blocks sit in the ground
+	if (NORMAL.y < 0.5) {
+		ALBEDO *= mix(0.80, 1.0, smoothstep(0.0, 0.30, fract(v_plane.y)));
+	}
 	ALPHA = tex.a;
 	ALPHA_SCISSOR_THRESHOLD = 0.42;
 	EMISSION = tex.rgb * v_emit * 1.9;

@@ -306,3 +306,30 @@ termasuk setelah tuning akhir); `MUSIC explore dur=12.97s rate=16000 peak=19754`
 
 Belum dikerjakan (audit Sprint C/D): crack overlay per tahap, telegraph boss,
 hit-stop, cooking/enchanting/fishing, landmark per biome, minimap bertema.
+
+## Cinematic Polish Pass (2026-11-10, lanjutan)
+
+- Color LUT: `_apply_color_lut()` membuat grayscale correction 256x1 dengan
+  shadow lift + highlight hangat, dipasang ke `adjustment_color_correction`.
+- Vignette sinematik: `src/ui/vignette.gdshader` (blend_mul) di CanvasLayer 2,
+  sudut menggelap dan sedikit dingin tanpa membaca screen texture (aman untuk
+  gl_compatibility).
+- Contact AO di shader voxel: sisi blok menggelap di 30% bawahnya sehingga blok
+  terasa menapak, bukan melayang.
+- Spawn hero: `_pick_hero_spawn()` menilai 26 kandidat (delta tinggi, air < 70
+  blok, biome meadow) dan menolak titik dalam radius 7.5 blok dari pohon;
+  `_clear_spawn_area()` membersihkan vegetasi 7x7 sampai 16 blok ke atas supaya
+  pemain tidak lahir di dalam batang pohon.
+- Crack overlay menambang: 4 tahap tekstur prosedural (`PixelArt.crack_image`)
+  tampil di blok target mengikuti `mining_progress`.
+- Highlight target tumbuhan dihilangkan (tidak ada lagi "kandang" garis di atas
+  rumput); umpan balik lewat crack overlay dan crosshair.
+- Cooking dasar: kategori Food di menu craft, resep Roasted Berries
+  (3 berry + 1 coal) dan Potion (2 roasted berry + 1 glass).
+
+Verifikasi: `--headless -- --ui-test` exit 0 tanpa SCRIPT ERROR setelah semua
+perubahan; screenshot 10:10 menunjukkan spawn di tanah terbuka dengan bayangan
+pohon terbaca.
+
+Masih terbuka: telegraph boss, hit-stop, enchant/fishing, landmark per biome,
+minimap bertema, LUT artistik (saat ini kurva prosedural).
