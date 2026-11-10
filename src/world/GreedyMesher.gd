@@ -12,6 +12,8 @@ const PSTRIDE := PW
 const PYSTRIDE := PW * PW
 const PADSIZE := PW * PW * PH
 
+static var active_tint := Color.WHITE
+
 class Builder:
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
@@ -25,7 +27,8 @@ class Builder:
 
 	func add_quad(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, n: Vector3,
 			u0: Vector2, u1: Vector2, u2: Vector2, u3: Vector2, tile: int,
-			shade: float, emit: float) -> void:
+			shade: float, emit: float, tint: Color = Color.WHITE,
+			rough: float = 0.9) -> void:
 		var base := verts.size()
 		verts.append(p0)
 		verts.append(p1)
@@ -33,8 +36,8 @@ class Builder:
 		verts.append(p3)
 		for i in 4:
 			normals.append(n)
-			uv2s.append(Vector2(tile, 0.0))
-			colors.append(Color(shade, shade, shade, emit))
+			uv2s.append(Vector2(tile, rough))
+			colors.append(Color(shade * tint.r, shade * tint.g, shade * tint.b, emit))
 		uvs.append(u0)
 		uvs.append(u1)
 		uvs.append(u2)
@@ -53,7 +56,9 @@ static func prewarm() -> void:
 	pass
 
 static func build(data: PackedByteArray, nx: PackedByteArray, px: PackedByteArray,
-		nz: PackedByteArray, pz: PackedByteArray, cx: int, cz: int) -> Dictionary:
+		nz: PackedByteArray, pz: PackedByteArray, cx: int, cz: int,
+		tint: Color = Color.WHITE) -> Dictionary:
+	active_tint = tint
 	var pad := _pad(data, nx, px, nz, pz)
 	var tables := _tables()
 	var tops: PackedInt32Array = tables["tops"]
@@ -283,13 +288,13 @@ static func _merge_emit(mask: PackedInt32Array, used: PackedByteArray, w: int, h
 					p2 = Vector3(xp, y1, z0); p3 = Vector3(xp, y1, z1)
 					uv0 = Vector2(wz1, y0); uv1 = Vector2(wz0, y0)
 					uv2 = Vector2(wz0, y1); uv3 = Vector2(wz1, y1)
-					shade = 0.84
+					shade = 0.90
 				else:
 					p0 = Vector3(xp, y0, z0); p1 = Vector3(xp, y0, z1)
 					p2 = Vector3(xp, y1, z1); p3 = Vector3(xp, y1, z0)
 					uv0 = Vector2(wz0, y0); uv1 = Vector2(wz1, y0)
 					uv2 = Vector2(wz1, y1); uv3 = Vector2(wz0, y1)
-					shade = 0.74
+					shade = 0.884
 			elif d == 1:
 				var yp := float(q + (1 if sign > 0 else 0))
 				var x0 := float(ui)
@@ -327,17 +332,41 @@ static func _merge_emit(mask: PackedInt32Array, used: PackedByteArray, w: int, h
 					p2 = Vector3(x1, y1, zp); p3 = Vector3(x0, y1, zp)
 					uv0 = Vector2(wx0, y0); uv1 = Vector2(wx1, y0)
 					uv2 = Vector2(wx1, y1); uv3 = Vector2(wx0, y1)
-					shade = 0.93
+					shade = 0.94
 				else:
 					p0 = Vector3(x1, y0, zp); p1 = Vector3(x0, y0, zp)
 					p2 = Vector3(x0, y1, zp); p3 = Vector3(x1, y1, zp)
 					uv0 = Vector2(wx1, y0); uv1 = Vector2(wx0, y0)
 					uv2 = Vector2(wx0, y1); uv3 = Vector2(wx1, y1)
 					shade = 0.8
+			var wobble := 1.0 + (fmod(float(absi(hash(Vector2i(base_x + ui, base_z + vi)))), 100.0) / 100.0 - 0.5) * 0.07
+			shade *= wobble
+			var rough := _roughness(b_id)
 			var target := solid
 			var g := groups[b_id]
 			if g == 2:
 				target = transparent
 			elif g == 3:
 				target = liquid
-			target.add_quad(p0, p1, p2, p3, n, uv0, uv1, uv2, uv3, tile, shade, emit)
+			target.add_quad(p0, p1, p2, p3, n, uv0, uv1, uv2, uv3, tile, shade, emit, active_tint, rough)
+
+## Per-material surface response. Wet/clear blocks stay glossy, raw stone and
+## foliage stay matte, ore and crystal catch a highlight.
+static func _roughness(id: int) -> float:
+	if id == Content.WATER or id == Content.LAVA:
+		return 0.10
+	if id == Content.ICE or id == Content.GLASS:
+		return 0.16
+	if id == Content.CRYSTAL_BLOCK or id == Content.CRYSTAL_ORE:
+		return 0.24
+	if id == Content.COAL_ORE or id == Content.IRON_ORE or id == Content.GOLD_ORE:
+		return 0.44
+	if id == Content.LAMP or id == Content.RUNE:
+		return 0.30
+	if id == Content.LOG or id == Content.PLANKS or id == Content.CHEST or id == Content.TABLE or id == Content.DOOR:
+		return 0.78
+	if id == Content.LEAVES or id == Content.PINE_LEAVES:
+		return 0.95
+	if id == Content.SNOW or id == Content.SAND or id == Content.GRAVEL:
+		return 0.88
+	return 0.86

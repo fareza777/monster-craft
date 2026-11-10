@@ -62,8 +62,8 @@ func height_at(x: int, z: int) -> int:
 	var detail := n_detail.get_noise_2d(x, z)
 	var ridge := 1.0 - absf(n_ridge.get_noise_2d(x, z))
 	var h := float(SEA) + 4.0 + cont * 13.0 + detail * 1.35
-	if cont > 0.16:
-		h += pow(ridge, 2.5) * (cont - 0.135) * 78.0
+	if cont > 0.06:
+		h += pow(ridge, 2.4) * (cont - 0.02) * 88.0
 	elif cont < -0.28:
 		h -= (-cont - 0.28) * 7.0
 	return clampi(int(round(h)), 4, HEIGHT - 6)
@@ -242,6 +242,11 @@ func _tree_list_for_chunk(cx: int, cz: int) -> Array:
 		var kind: String = Content.BIOMES[biome].tree
 		if kind == "dead" and rng.randf() < 0.4:
 			continue
+		var roll := rng.randf()
+		if kind == "oak" and roll < 0.20:
+			kind = "bush"
+		elif kind == "oak" and roll < 0.30:
+			kind = "rock"
 		out.append({"x": wx, "z": wz, "y": h, "kind": kind, "seed": rng.randi()})
 	return out
 
@@ -260,12 +265,19 @@ func _stamp_tree(buf: PackedByteArray, cx: int, cz: int, t: Dictionary) -> void:
 	var kind: String = t.kind
 	match kind:
 		"oak":
-			var trunk_h := rng.randi_range(4, 6)
+			var big := rng.randf() < 0.28
+			var trunk_h := rng.randi_range(4, 6) if not big else rng.randi_range(7, 10)
 			for i in range(1, trunk_h + 1):
 				_put_world(buf, cx, cz, wx, wy + i, wz, Content.LOG)
+			if big:
+				for sx in [1, -1]:
+					if rng.randf() < 0.7:
+						var bl := rng.randi_range(3, trunk_h - 1)
+						_put_world(buf, cx, cz, wx + sx, wy + bl, wz, Content.LOG, true)
+						_put_world(buf, cx, cz, wx + sx * 2, wy + bl, wz, Content.LOG, true)
 			var top := wy + trunk_h
-			for dy in range(-2, 3):
-				var radius := 2 if absi(dy) < 2 else 1
+			for dy in range(-3 if big else -2, 4 if big else 3):
+				var radius := (3 if absi(dy) < 2 else 2) if big else (2 if absi(dy) < 2 else 1)
 				for dx in range(-radius, radius + 1):
 					for dz in range(-radius, radius + 1):
 						if absi(dx) == radius and absi(dz) == radius and rng.randf() < 0.6:
@@ -314,6 +326,26 @@ func _stamp_tree(buf: PackedByteArray, cx: int, cz: int, t: Dictionary) -> void:
 					if absi(dx) + absi(dz) <= 2:
 						_put_world(buf, cx, cz, wx + dx, top + 1, wz + dz, Content.MUSH_CAP, true)
 			_put_world(buf, cx, cz, wx, top + 2, wz, Content.MUSH_CAP, true)
+		"bush":
+			for dy in range(0, 3):
+				var br := 2 if dy == 1 else 1
+				for dx in range(-br, br + 1):
+					for dz in range(-br, br + 1):
+						if absi(dx) + absi(dz) > br + 1:
+							continue
+						if dy == 2 and absi(dx) + absi(dz) == br + 1:
+							continue
+						_put_world(buf, cx, cz, wx + dx, wy + 1 + dy, wz + dz, Content.LEAVES, true)
+		"rock":
+			var rw := rng.randi_range(1, 2)
+			for dx in range(-rw, rw + 1):
+				for dz in range(-rw, rw + 1):
+					if absi(dx) + absi(dz) > rw + 1:
+						continue
+					_put_world(buf, cx, cz, wx + dx, wy + 1, wz + dz, Content.STONE, true)
+			_put_world(buf, cx, cz, wx, wy + 2, wz, Content.STONE, true)
+			if rng.randf() < 0.4:
+				_put_world(buf, cx, cz, wx + 1, wy + 2, wz, Content.GRAVEL, true)
 		"dead":
 			var h := rng.randi_range(3, 5)
 			for i in range(1, h + 1):

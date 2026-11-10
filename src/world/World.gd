@@ -457,9 +457,23 @@ func force_load_area(center: Vector3, radius: int = 1) -> void:
 			if chunk.mesh_version < 0:
 				var groups := GreedyMesher.build(data[key], _neighbor_copy(key + Vector2i(-1, 0)),
 					_neighbor_copy(key + Vector2i(1, 0)), _neighbor_copy(key + Vector2i(0, -1)),
-					_neighbor_copy(key + Vector2i(0, 1)), key.x, key.y)
+					_neighbor_copy(key + Vector2i(0, 1)), key.x, key.y,
+					_biome_tint(gen.biome_at(key.x * 16 + 8, key.y * 16 + 8)))
 				chunk.apply_groups(groups, chunk.data_version)
 			chunk.set_collision(true)
+
+
+func _biome_tint(biome: String) -> Color:
+	match biome:
+		"desert":
+			return Color(1.0, 0.94, 0.76)
+		"frost":
+			return Color(0.84, 0.93, 1.0)
+		"mushroom":
+			return Color(0.95, 0.87, 1.0)
+		"ash":
+			return Color(0.99, 0.82, 0.76)
+	return Color(1.0, 1.0, 0.98)
 
 func respawn_player() -> void:
 	if player == null:
@@ -631,22 +645,22 @@ func _build_environment() -> void:
 	_environment.sky = sky
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	_environment.ambient_light_energy = 0.85
-	_environment.ambient_light_sky_contribution = 1.0
+	_environment.ambient_light_sky_contribution = 0.72
 	_environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	_environment.tonemap_white = 6.0
 	_environment.adjustment_enabled = true
 	_environment.adjustment_brightness = 1.02
-	_environment.adjustment_contrast = 1.04
-	_environment.adjustment_saturation = 1.08
-	_environment.tonemap_exposure = 1.05
+	_environment.adjustment_contrast = 1.09
+	_environment.adjustment_saturation = 1.02
+	_environment.tonemap_exposure = 1.0
 	_environment.fog_enabled = true
 	_environment.fog_light_color = Color("#b6d9d0")
 	_environment.fog_light_energy = 0.8
 	_environment.fog_density = 0.0055
 	_environment.fog_sky_affect = 0.2
-	_environment.fog_aerial_perspective = 0.55
-	_environment.fog_height = 26.0
-	_environment.fog_height_density = 0.05
+	_environment.fog_aerial_perspective = 0.35
+	_environment.fog_height = 10.0
+	_environment.fog_height_density = 0.12
 	var we := WorldEnvironment.new()
 	we.environment = _environment
 	add_child(we)
@@ -656,9 +670,9 @@ func _build_environment() -> void:
 	_sun.directional_shadow_fade_start = 0.85
 	_sun.directional_shadow_pancake_size = 20.0
 	_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-	_sun.directional_shadow_max_distance = 120.0
-	_sun.shadow_bias = 0.06
-	_sun.shadow_normal_bias = 1.6
+	_sun.directional_shadow_max_distance = 84.0
+	_sun.shadow_bias = 0.025
+	_sun.shadow_normal_bias = 0.9
 	_sun.light_energy = 1.1
 	_sun.light_color = Color("#fff4da")
 	_sun.rotation_degrees = Vector3(-70, -35, 0)
@@ -706,21 +720,21 @@ func _update_environment() -> void:
 	var grass_c: Color = b.get("grass", Color("#6aa84f"))
 	_sky_mat.ground_horizon_color = horizon.lerp(grass_c.darkened(0.35), 0.45)
 	_sky_mat.ground_bottom_color = Color("#2a3a3a")
-	_sky_mat.sky_energy_multiplier = 0.75 + day * 0.5
+	_sky_mat.sky_energy_multiplier = 0.5 + day * 0.3
 	_sun.rotation_degrees = Vector3(-rad_to_deg(asin(clampf(sun_elev, -1.0, 1.0))), -35.0, 0.0)
-	_sun.light_energy = 0.06 + day * 1.25
+	_sun.light_energy = 0.04 + day * 0.92
 	if dusk > 0.15:
 		_sun.light_color = Color("#fff4da").lerp(Color("#ffb17a"), dusk)
 	else:
 		_sun.light_color = Color("#fff4da").lerp(Color("#a8c4ff"), night * 0.7)
-	_environment.ambient_light_energy = 0.36 + day * 0.6
-	_environment.ambient_light_color = Color("#bcd8e0").lerp(Color("#4a648c"), night)
-	_environment.adjustment_brightness = 1.02 - night * 0.06
-	_environment.adjustment_saturation = 1.1 - night * 0.12 - rain * 0.08
+	_environment.ambient_light_energy = 0.24 + day * 0.18
+	_environment.ambient_light_color = Color("#d4ded4").lerp(Color("#3d5680"), night)
+	_environment.adjustment_brightness = 1.0 - night * 0.04
+	_environment.adjustment_saturation = 1.03 - night * 0.10 - rain * 0.06
 	_moon.rotation_degrees = Vector3(-rad_to_deg(asin(clampf(-sun_elev, -1.0, 1.0))), 145.0, 0.0)
-	_moon.light_energy = night * 0.62 * (1.0 - rain)
-	_environment.fog_light_color = horizon.lerp(Color("#3c4c54"), night * 0.55)
-	_environment.fog_density = 0.0045 + rain * 0.011 + night * 0.002
+	_moon.light_energy = night * 0.78 * (1.0 - rain * 0.7)
+	_environment.fog_light_color = horizon.lerp(grass_c.darkened(0.16), 0.55).lerp(Color("#1e2f4a"), night * 0.62)
+	_environment.fog_density = 0.0032 + rain * 0.009 + night * 0.0032
 	_flash.global_position = focus + Vector3(0, 25, 0)
 	_sun.shadow_enabled = true
 	if _stars != null:

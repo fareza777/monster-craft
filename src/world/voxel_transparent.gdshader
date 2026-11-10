@@ -10,12 +10,14 @@ varying vec2 v_plane;
 varying float v_tile;
 varying float v_shade;
 varying float v_emit;
+varying float v_rough;
 
 void vertex() {
 	v_plane = UV;
 	v_tile = floor(UV2.x + 0.5);
 	v_shade = COLOR.r;
 	v_emit = COLOR.a;
+	v_rough = UV2.y;
 }
 
 void fragment() {
@@ -28,13 +30,13 @@ void fragment() {
 	vec2 local = clamp(fract(plane), vec2(0.035), vec2(0.965));
 	vec2 uv = (cell * tile_px + local * tile_px) / atlas_size;
 	vec4 tex = texture(atlas_tex, uv);
-	ALBEDO = tex.rgb * v_shade;
+	ALBEDO = tex.rgb * COLOR.rgb;
 	ALPHA = tex.a;
 	if (wave_strength > 0.0) {
 		float fres = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 3.0);
 		ALBEDO = mix(ALBEDO, vec3(0.62, 0.86, 0.95), fres * 0.55);
 		ALPHA = clamp(ALPHA + fres * 0.24, 0.0, 0.96);
 	}
-	EMISSION = tex.rgb * v_emit * 0.7;
+	EMISSION = tex.rgb * v_emit * 1.9;
 	ROUGHNESS = 0.5;
 }

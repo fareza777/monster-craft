@@ -85,6 +85,7 @@ var banner_sub: Label
 var banner_tween: Tween
 var damage_flash: ColorRect
 var hint_label: Label
+var system_menu: PanelContainer
 
 var modal: Control
 var modal_card: PanelContainer
@@ -174,8 +175,11 @@ Mine: hold MINE • Jump: JUMP"
 			hint_label.text = "Move: joystick on the left • Look: drag right
 Mine: hold MINE • Jump: JUMP"
 	else:
-		hint_label.text = "WASD: move • Mouse: look • LMB: mine/attack • E: bag • C: craft • F: use • R: skill • Esc: pause"
-	_hint_left = 14.0
+		hint_label.text = ""
+		hint_label.visible = false
+		_hint_left = 0.0
+		return
+	_hint_left = 10.0
 
 # ------------------------------------------------------------------ HUD
 
@@ -283,7 +287,7 @@ func _build_menu_buttons() -> void:
 	menu_bar.add_theme_stylebox_override("panel", UITheme.glass_style(18, 0.78))
 	menu_bar.anchor_left = 1
 	menu_bar.anchor_right = 1
-	menu_bar.offset_left = -484
+	menu_bar.offset_left = -230
 	menu_bar.offset_right = -16
 	menu_bar.offset_top = 14
 	menu_bar.offset_bottom = 76
@@ -293,13 +297,36 @@ func _build_menu_buttons() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_END
 	var defs := [
 		["BAG", "bag", open_inventory], ["CRAFT", "craft", open_crafting],
-		["TEAM", "team", open_party], ["CODEX", "codex", open_codex],
-		["QUEST", "quest", open_quests], ["MAP", "map", open_map],
-		["PAUSE", "pause", open_pause],
+		["MENU", "menu", _open_system_menu],
 	]
 	for d in defs:
 		var b := _menu_icon_button(row, str(d[0]), str(d[1]), d[2])
 		_touch_blockers.append(b)
+
+
+func _open_system_menu() -> void:
+	if system_menu != null and is_instance_valid(system_menu):
+		system_menu.queue_free()
+		system_menu = null
+		return
+	system_menu = PanelContainer.new()
+	system_menu.add_theme_stylebox_override("panel", UITheme.panel_style(16))
+	system_menu.anchor_left = 1
+	system_menu.anchor_right = 1
+	system_menu.offset_left = -216
+	system_menu.offset_right = -16
+	system_menu.offset_top = 84
+	system_menu.offset_bottom = 330
+	hud.add_child(system_menu)
+	var v := UITheme.make_vbox(system_menu, 6)
+	var entries := [["Team", open_party], ["Codex", open_codex], ["Quests", open_quests], ["Map", open_map], ["Pause", open_pause]]
+	for e in entries:
+		var b := UITheme.make_button(v, str(e[0]), "ghost", 38, 12)
+		b.pressed.connect(func():
+			if system_menu != null and is_instance_valid(system_menu):
+				system_menu.queue_free()
+				system_menu = null
+			(e[1] as Callable).call())
 
 func _menu_icon_button(parent: Node, caption: String, kind: String, cb: Callable) -> Button:
 	var b := Button.new()
@@ -308,6 +335,8 @@ func _menu_icon_button(parent: Node, caption: String, kind: String, cb: Callable
 	b.mouse_filter = Control.MOUSE_FILTER_STOP
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	var normal := UITheme.style(Color(0.03, 0.09, 0.09, 0.62), Color(0.38, 0.58, 0.52, 0.38), 14, 1, 2)
+	if kind == "craft":
+		normal = UITheme.style(Color(0.76, 0.54, 0.19, 0.96), Color(1.0, 0.87, 0.6, 0.92), 14, 1, 2)
 	var hover := normal.duplicate() as StyleBoxFlat
 	hover.bg_color = Color(0.09, 0.22, 0.2, 0.92)
 	hover.border_color = UITheme.AMBER
@@ -323,7 +352,8 @@ func _menu_icon_button(parent: Node, caption: String, kind: String, cb: Callable
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(box)
 	var tr := TextureRect.new()
-	tr.texture = ImageTexture.create_from_image(PixelArt.ui_icon(kind, Color("#efe8d0")))
+	var icon_col := Color("#2a1c07") if kind == "craft" else Color("#efe8d0")
+	tr.texture = ImageTexture.create_from_image(PixelArt.ui_icon(kind, icon_col))
 	tr.custom_minimum_size = Vector2(26, 26)
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -334,7 +364,7 @@ func _menu_icon_button(parent: Node, caption: String, kind: String, cb: Callable
 	cap.text = caption
 	cap.add_theme_font_override("font", UITheme.title_font())
 	cap.add_theme_font_size_override("font_size", int(maxf(9.0, 9.5 * UITheme.font_boost)))
-	cap.add_theme_color_override("font_color", UITheme.INK)
+	cap.add_theme_color_override("font_color", Color("#2a1c07") if kind == "craft" else UITheme.INK)
 	cap.add_theme_color_override("font_outline_color", Color(0.02, 0.05, 0.05, 0.9))
 	cap.add_theme_constant_override("outline_size", 2)
 	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -644,13 +674,13 @@ func _build_notifications() -> void:
 		notif_box.offset_bottom = 520
 		notif_box.alignment = BoxContainer.ALIGNMENT_BEGIN
 	else:
-		notif_box.anchor_top = 1
-		notif_box.anchor_bottom = 1
-		notif_box.offset_left = -330
+		notif_box.anchor_top = 0
+		notif_box.anchor_bottom = 0
+		notif_box.offset_left = -306
 		notif_box.offset_right = -16
-		notif_box.offset_top = -322
-		notif_box.offset_bottom = -108
-		notif_box.alignment = BoxContainer.ALIGNMENT_END
+		notif_box.offset_top = 156
+		notif_box.offset_bottom = 430
+		notif_box.alignment = BoxContainer.ALIGNMENT_BEGIN
 	hud.add_child(notif_box)
 func _build_banner() -> void:
 	banner_box = VBoxContainer.new()
@@ -1020,13 +1050,13 @@ func flash_hurt() -> void:
 func toast(text: String, color: Color = UITheme.INK) -> void:
 	if notif_box == null:
 		return
-	if notif_box.get_child_count() >= 5:
+	if notif_box.get_child_count() >= 3:
 		var old := notif_box.get_child(0)
 		notif_box.remove_child(old)
 		old.queue_free()
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", UITheme.style(Color(0.03, 0.09, 0.085, 0.92),
-		Color(color.r, color.g, color.b, 0.5), 10, 1, 10))
+	p.add_theme_stylebox_override("panel", UITheme.style(Color(0.035, 0.075, 0.075, 0.88),
+		Color(color.r, color.g, color.b, 0.32), 12, 1, 10))
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var l := UITheme.make_label(p, text, 12, color)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

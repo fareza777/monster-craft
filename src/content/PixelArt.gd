@@ -173,15 +173,20 @@ static func tile_image(tile_name: String) -> Image:
 	var img := _new_img()
 	match tile_name:
 		"grass_top":
-			_noise_fill(img, Color("#65b45a"), 0.16, 11)
-			_speckles(img, 22, 12, Color("#7ec96c"), 1)
-			_speckles(img, 14, 13, Color("#4d9446"), 2)
+			_noise_fill(img, Color("#4a7a3f"), 0.12, 11)
+			for i in 30:
+				var gx := int(hash01(i, 21, 15) * T)
+				var gy := int(hash01(i, 27, 16) * T)
+				var glen := 1 + int(hash01(i, 31, 17) * 2.0)
+				var gc := Color("#3b6132") if i % 3 == 0 else Color("#5f9450")
+				_rect(img, gx, gy, 1, glen, gc)
+			_speckles(img, 8, 13, Color("#356029"), 1)
 		"grass_side":
 			_noise_fill(img, Color("#7b5839"), 0.18, 21)
 			for x in T:
 				var edge := 3 + int(hash01(x, 0, 22) * 3)
 				for y in edge:
-					var c := Color("#65b45a").darkened(hash01(x, y, 23) * 0.18)
+					var c := Color("#4f8043").darkened(hash01(x, y, 23) * 0.18)
 					img.set_pixel(x, y, c)
 			_speckles(img, 8, 24, Color("#5a4028"), 2)
 		"dirt":
@@ -226,9 +231,12 @@ static func tile_image(tile_name: String) -> Image:
 							img.set_pixel(x, y, c)
 			_rect(img, 7, 7, 2, 2, Color("#6a4829"))
 		"leaves":
-			_noise_fill(img, Color("#3e8748"), 0.22, 91, 0.0)
-			_speckles(img, 26, 92, Color("#2f6f3b"), 2)
-			_speckles(img, 18, 93, Color("#57a65e"), 1)
+			_noise_fill(img, Color("#35703c"), 0.16, 91, 0.0)
+			for i in 12:
+				var lx := int(hash01(i, 41, 92) * 15)
+				var ly := int(hash01(i, 43, 93) * 15)
+				var lc := Color("#27512e") if i % 2 == 0 else Color("#4a8a4c")
+				_rect(img, lx, ly, 2, 2, lc)
 			for i in 10:
 				var x := int(hash01(i, 4, 94) * T)
 				var y := int(hash01(i, 9, 95) * T)

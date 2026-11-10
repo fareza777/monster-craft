@@ -35,6 +35,9 @@ var _head_mat: StandardMaterial3D
 var _cube_mat: StandardMaterial3D
 var _orb_mat: StandardMaterial3D
 var _ghost_mat: StandardMaterial3D
+var dodge_timer := 0.0
+var dodge_cooldown := 0.0
+var dodge_dir := Vector3.ZERO
 var _particle_mat: StandardMaterial3D
 
 var primary_held := false
@@ -85,6 +88,7 @@ func _ready() -> void:
 	_build_hand()
 	_build_place_ghost()
 	_build_highlight()
+	_build_arm()
 	_build_particles()
 	_ensure_input()
 	Game.inventory_changed.connect(_refresh_held)
@@ -311,6 +315,24 @@ func _physics_process(delta: float) -> void:
 				var step_above := world.get_block(Vector3i(bx, step_y + 1, bz))
 				if Content.is_solid(step_block) and not Content.is_solid(step_above):
 					velocity.y = JUMP_SPEED * 0.95
+	if dodge_cooldown > 0.0:
+		dodge_cooldown -= delta
+	if dodge_timer > 0.0:
+		dodge_timer -= delta
+	elif input_enabled and Input.is_action_just_pressed("mc_dodge") and dodge_cooldown <= 0.0 and Game.stamina > 12.0:
+		var ddir := Vector3(input_vec.x, 0, input_vec.y)
+		if ddir.length() < 0.1:
+			ddir = Vector3(-sin(yaw), 0, -cos(yaw))
+		dodge_dir = ddir.normalized().rotated(Vector3.UP, 0.0)
+		dodge_timer = 0.32
+		dodge_cooldown = 1.05
+		Game.drain_stamina(14.0)
+		hurt_cooldown = maxf(hurt_cooldown, 0.32)
+		Sfx.play("dodge", 0.1)
+	if dodge_timer > 0.0:
+		var burst := 0.35 + dodge_timer / 0.32
+		velocity.x = dodge_dir.x * 11.0 * burst
+		velocity.z = dodge_dir.z * 11.0 * burst
 	# fall damage
 	if not is_on_floor():
 		fall_speed = minf(fall_speed, velocity.y)
@@ -389,8 +411,8 @@ func _update_look_and_hand(delta: float) -> void:
 		var sway := sin(walk_time) * 0.012 * clampf(speed2d / WALK_SPEED, 0.0, 1.0)
 		var sway2 := sin(walk_time * 2.0) * 0.02 * clampf(speed2d / WALK_SPEED, 0.0, 1.3)
 		var idle := sin(Time.get_ticks_msec() * 0.0013) * 0.007
-		hand_root.position = Vector3(0.42 + sway * 2.1 - _look_sway.x * 0.045 + sway2, -0.31 + bob * 0.95 + idle + dip * 0.55 - _look_sway.y * 0.03, -0.74 - swing * 0.17)
-		hand_root.rotation_degrees = Vector3(-4.0 - swing * 62.0 + _look_sway.y * 4.0, swing * 14.0 + _look_sway.x * 7.0, -6.0 + sway * 170.0 + swing * 20.0)
+		hand_root.position = Vector3(0.35 + sway * 2.1 - _look_sway.x * 0.045 + sway2, -0.35 + bob * 0.95 + idle + dip * 0.55 - _look_sway.y * 0.03, -0.82 - swing * 0.15)
+		hand_root.rotation_degrees = Vector3(-4.0 - swing * 46.0 + _look_sway.y * 4.0, swing * 12.0 + _look_sway.x * 7.0, -6.0 + sway * 170.0 + swing * 16.0)
 	_update_place_ghost()
 
 func _detect_look_target() -> void:
@@ -407,6 +429,17 @@ func _detect_look_target() -> void:
 	highlight.visible = true
 	highlight.global_position = Vector3(hit.pos) + Vector3(0.5, 0.5, 0.5)
 	highlight.scale = Vector3(1.006, 1.006, 1.006)
+
+func _block_sfx(block: int) -> String:
+	var bd: Dictionary = Content.BLOCKS.get(block, {})
+	match str(bd.get("tool", "")):
+		"axe":
+			return "dig_wood"
+		"shovel":
+			return "dig_dirt"
+		"pick":
+			return "dig_stone"
+	return "dig"
 
 func _update_mining(delta: float) -> void:
 	if primary_held and input_enabled:
@@ -456,7 +489,7 @@ func _update_mining(delta: float) -> void:
 		sfx_dig_timer -= delta
 		if sfx_dig_timer <= 0.0:
 			sfx_dig_timer = 0.24
-			Sfx.play("dig", 0.14)
+			Sfx.play(_block_sfx(block), 0.14)
 		if mining_progress >= 1.0:
 			_break_block(target, block)
 			mining_progress = 0.0
@@ -770,6 +803,33 @@ func _build_place_ghost() -> void:
 	place_ghost.visible = false
 	add_child(place_ghost)
 
+
+func _build_arm() -> void:
+	if hand_root == null:
+		return
+	hand_root.scale = Vector3(0.86, 0.86, 0.86)
+	var sleeve := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.135, 0.135, 0.40)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("#2f5540")
+	mat.roughness = 0.92
+	box.material = mat
+	sleeve.mesh = box
+	sleeve.position = Vector3(-0.01, -0.115, 0.34)
+	sleeve.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	hand_root.add_child(sleeve)
+	var hand := MeshInstance3D.new()
+	var hbox := BoxMesh.new()
+	hbox.size = Vector3(0.125, 0.12, 0.15)
+	var hm := StandardMaterial3D.new()
+	hm.albedo_color = Color("#c89a6b")
+	hm.roughness = 0.7
+	hbox.material = hm
+	hand.mesh = hbox
+	hand.position = Vector3(0.0, -0.14, 0.19)
+	hand.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	hand_root.add_child(hand)
 
 func _refresh_held() -> void:
 	if hand_root == null:

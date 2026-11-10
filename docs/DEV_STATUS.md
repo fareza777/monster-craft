@@ -237,3 +237,72 @@ diganti model voxel 3D sungguhan, dibangun dari box bertingkat seperti pedang.
   dan densitas tuft padang rumput 7% -> 11%, jamur 5.5% -> 7%.
 - Verifikasi: `--headless -- --ui-test` exit 0; screenshot siang dan malam diambil
   untuk QA visual.
+
+## Highlight Outline - Target & Placement
+
+- Highlight target dan ghost penempatan blok diganti dari balok isi transparan
+  (tampak seperti balok kaca bertumpuk) menjadi outline 12 rusuk yang bersih:
+  highlight amber 0.95 alpha, ghost hijau 0.9 alpha, ghost sedikit lebih besar
+  (0.53 vs 0.51) agar keduanya tetap terbedakan saat muncul bersamaan.
+- Implementasi lewat `_outline_mesh()` di `Player.gd` (ImmediateMesh PRIMITIVE_LINES).
+- Verifikasi: `--headless -- --ui-test` exit 0; screenshot siang/senja/malam bersih
+  dari artefak balok transparan.
+
+## Full Audit Visual & Gameplay (2026-11-10)
+
+- Audit menyeluruh (render pipeline, palet, tekstur, worldgen, vegetasi, viewmodel,
+  HUD/UI, dan loop gameplay) beserta rekomendasi berprioritas ada di
+  `docs/AUDIT_VISUAL_GAMEPLAY.md`.
+- Temuan utama: grading hijau neon (ambient sky 0.96 + saturasi 1.1), semua material
+  matte (`ROUGHNESS=1`, `specular_disabled`), rasio sinar:ambient ~1.3:1 sehingga
+  bayangan nyaris tak terbaca, dunia tanpa tint biome, kanopi pohon blob, spawn datar,
+  malam tanpa aksen hangat, dan HUD dengan 7 tombol berbobot sama plus hint permanen
+  di atas dunia.
+- Roadmap 4 sprint: A (sekali lihat langsung beda), B (dunia terasa hidup),
+  C (premium feel), D (kedalaman gameplay), plus 5 quick win prioritas tertinggi.
+- Status: audit selesai; belum ada perubahan implementasi dari rekomendasi ini.
+
+## AAA Rendering, Audio & Controls Overhaul (2026-11-10)
+
+Rendering:
+- Rasio cahaya diperbaiki: ambient siang 0.96 -> 0.42, matahari 1.31 -> 0.88,
+  kontras 1.09, exposure 1.0. Bayangan akhirnya terbaca sebagai bentuk.
+- Biome tint per chunk: mesher mengalikan vertex color dengan warna biome
+  (desert hangat, frost dingin, mushroom ungu, ash kemerahan), plus variasi
+  halus per kolom, sehingga dunia tidak lagi satu hijau.
+- Material response: `voxel_solid/plant/transparent` pindah ke `diffuse_burley`
+  dengan roughness per blok (air 0.10, es/kaca 0.16, kristal 0.24, ore 0.44,
+  kayu 0.78, dedaunan 0.95) dan specular 0.45. Emission lampu/kristal 1.9x.
+- Fog: warna mengikuti rumput biome (bukan horizon pucat), density 0.0032,
+  aerial 0.35, low fog 10/0.12; langit lebih tenang (sky energy 0.5+day*0.3).
+- Palet rumput/daun dibuat lebih pekat dan terarah (goresan vertikal, gugus
+  daun 2x2) menggantikan speckle acak.
+- Worldgen: ridge mulai di cont 0.06 (skala 88) sehingga perbukitan muncul;
+  pohon oak 3 varian (termasuk raksasa bercabang), semak, batu permukaan.
+
+HUD:
+- Menu bar 7 tombol -> 3: BAG, CRAFT (amber primary), MENU. Team/Codex/Quests/
+  Map/Pause pindah ke panel MENU.
+- Hint keyboard permanen dihapus (hanya petunjuk sentuh yang singkat).
+- Toast pindah ke kanan atas di bawah jam, maksimal 3, gaya lebih tipis.
+
+Player & audio:
+- Viewmodel: lengan voxel (sleeve + tangan), skala 0.86, posisi lebih rendah,
+  ayunan 46 derajat sehingga tidak menutupi hotbar.
+- Dodge roll (Shift): burst 0.32s, cooldown 1.05s, biaya stamina 14, i-frame
+  0.32s; action `mc_dodge` didaftarkan runtime.
+- SFX per material: dig_stone / dig_wood / dig_dirt / dig_metal, plus dodge,
+  step, cook, eat, sell, buy, unlock, boss_warn.
+- Musik prosedural baru: 4 track (explore, night, combat, boss) dengan pad,
+  bell/pluck, bass, strings/brass dan perkusi taiko; reverb + stereo widening,
+  crossfade 1.8s, track non-aktif dirender di background thread. Ambience
+  terpisah (angin + burung siang, jangkrik malam). Musik combat dipicu saat
+  pemain menerima damage.
+- QA hook: `-- --ui-test --audio-log` mencetak durasi/peak tiap track.
+
+Verifikasi: `--headless -- --ui-test` exit 0 tanpa SCRIPT ERROR (beberapa kali,
+termasuk setelah tuning akhir); `MUSIC explore dur=12.97s rate=16000 peak=19754`
+(musik tidak senyap); screenshot siang/senja/malam diperiksa.
+
+Belum dikerjakan (audit Sprint C/D): crack overlay per tahap, telegraph boss,
+hit-stop, cooking/enchanting/fishing, landmark per biome, minimap bertema.

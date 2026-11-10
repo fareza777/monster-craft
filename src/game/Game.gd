@@ -658,6 +658,8 @@ func heal_player(amount: int) -> void:
 	stats_changed.emit()
 
 func damage_player(raw: int, reason: String = "") -> void:
+	if raw > 0:
+		Sfx.pulse_combat(9.0)
 	var def := defense_total()
 	var dmg := maxi(1, raw - int(def * 0.6))
 	hp = maxi(0, hp - dmg)
